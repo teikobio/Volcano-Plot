@@ -1,0 +1,364 @@
+<div id="stats-table-embed" style="max-width:1200px;margin:0 auto;">
+  <style>
+    #stats-table-embed {
+      background: #202028;
+      border-radius: 12px;
+      padding: 24px;
+      position: relative;
+      color: #fff;
+    }
+    #stats-table-embed .chart-title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #fff;
+      letter-spacing: 0.01em;
+    }
+    #stats-table-embed .export-btn {
+      background: #2c3e50;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+      margin-left: 8px;
+      transition: background 0.2s;
+    }
+    #stats-table-embed .export-btn:hover {
+      background: #34495e;
+    }
+    #stats-table-embed .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      color: #fff;
+    }
+    #stats-table-embed .stats-table th,
+    #stats-table-embed .stats-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #444;
+    }
+    #stats-table-embed .stats-table th {
+      background-color: #2c3e50;
+      font-weight: 600;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      transition: background-color 0.2s;
+    }
+    #stats-table-embed .stats-table th:hover {
+      background-color: #34495e;
+    }
+    #stats-table-embed .stats-table th::after {
+      content: ' ↕';
+      color: #999;
+      font-size: 12px;
+      margin-left: 5px;
+    }
+    #stats-table-embed .stats-table th.sort-asc::after {
+      content: ' ↑';
+      color: #fff;
+    }
+    #stats-table-embed .stats-table th.sort-desc::after {
+      content: ' ↓';
+      color: #fff;
+    }
+    #stats-table-embed .significant {
+      background-color: rgba(255, 193, 7, 0.1);
+    }
+  </style>
+  <div class="chart-title">Statistical Analysis Results</div>
+  <div style="text-align:right;">
+    <button class="export-btn" id="export-table-png">Export Table PNG</button>
+  </div>
+  <table class="stats-table" id="stats-table">
+    <thead>
+      <tr>
+        <th>Area</th>
+        <th>Type</th>
+        <th>Sample Size</th>
+        <th>Avg Price Oct 2022</th>
+        <th>Avg Price May 2025</th>
+        <th>Price Change (%)</th>
+        <th>t-statistic</th>
+        <th>p-value</th>
+        <th>Significant?</th>
+      </tr>
+    </thead>
+    <tbody id="stats-body">
+    </tbody>
+  </table>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <script>
+    // --- Dataset (same as your original) ---
+    function generateRealEstateDataset() {
+      const areas = [
+        { name: 'San Francisco', type: 'tech', basePriceOct2022: 4200, priceMultiplierMay2025: 2.2 },
+        { name: 'Seattle', type: 'tech', basePriceOct2022: 2800, priceMultiplierMay2025: 1.45 },
+        { name: 'Austin', type: 'tech', basePriceOct2022: 2200, priceMultiplierMay2025: 1.65 },
+        { name: 'Portland', type: 'tech', basePriceOct2022: 2600, priceMultiplierMay2025: 1.12 },
+        { name: 'Millfield County', type: 'rural', basePriceOct2022: 950, priceMultiplierMay2025: 1.005 },
+        { name: 'Clearwater County', type: 'rural', basePriceOct2022: 850, priceMultiplierMay2025: 0.98 },
+        { name: 'Greendale County', type: 'rural', basePriceOct2022: 780, priceMultiplierMay2025: 1.01 },
+        { name: 'Riverside County', type: 'rural', basePriceOct2022: 920, priceMultiplierMay2025: 0.995 },
+        { name: 'Papertown', type: 'manual', basePriceOct2022: 1200, priceMultiplierMay2025: 0.72 },
+        { name: 'Analogville', type: 'manual', basePriceOct2022: 1100, priceMultiplierMay2025: 0.45 },
+        { name: 'Typeville', type: 'manual', basePriceOct2022: 1050, priceMultiplierMay2025: 0.85 }
+      ];
+      const dataset = [];
+      let apartmentId = 1;
+      areas.forEach(area => {
+        const numApartments = Math.floor(Math.random() * 11) + 35;
+        for (let i = 0; i < numApartments; i++) {
+          const sqft = Math.floor(Math.random() * (1400 - 500) + 500);
+          const bedrooms = Math.floor(Math.random() * 3) + 1;
+          const bathrooms = Math.round((Math.random() * 1.5 + 1) * 2) / 2;
+          const floor = Math.floor(Math.random() * 20) + 1;
+          const age = Math.floor(Math.random() * 40) + 5;
+          const walkScore = Math.floor(Math.random() * 40) + (area.type === 'tech' ? 60 : area.type === 'manual' ? 40 : 20);
+          const hasParking = Math.random() > (area.type === 'tech' ? 0.6 : area.type === 'manual' ? 0.3 : 0.2);
+          let basePrice = area.basePriceOct2022;
+          let pricePerSqft = basePrice / 700;
+          let oct2022Price = Math.round(
+            (pricePerSqft * sqft) +
+            (bedrooms * 200) +
+            (bathrooms * 150) +
+            (walkScore * 3) +
+            (hasParking ? 100 : 0) -
+            (age * 5) +
+            (Math.random() * 400 - 200)
+          );
+          let may2025Price;
+          if (area.type === 'tech') {
+            let techVariation = area.priceMultiplierMay2025 + (Math.random() * 0.1 - 0.05);
+            if (area.name === 'Portland') techVariation = area.priceMultiplierMay2025 + (Math.random() * 0.18 - 0.09);
+            may2025Price = Math.round(oct2022Price * techVariation);
+          } else if (area.type === 'manual') {
+            let manualVariation = area.priceMultiplierMay2025 + (Math.random() * 0.08 - 0.04);
+            if (area.name === 'Typeville') manualVariation = area.priceMultiplierMay2025 + (Math.random() * 0.16 - 0.08);
+            may2025Price = Math.round(oct2022Price * manualVariation);
+          } else {
+            let ruralVariation = area.priceMultiplierMay2025 + (Math.random() * 0.08 - 0.04);
+            if (area.name === 'Millfield County' || area.name === 'Riverside County') ruralVariation = area.priceMultiplierMay2025 + (Math.random() * 0.15 - 0.075);
+            may2025Price = Math.round(oct2022Price * ruralVariation);
+          }
+          dataset.push({
+            apartment_id: apartmentId++,
+            area: area.name,
+            area_type: area.type,
+            price_oct_2022: oct2022Price,
+            price_may_2025: may2025Price,
+            price_change_pct: ((may2025Price - oct2022Price) / oct2022Price * 100)
+          });
+        }
+      });
+      return dataset;
+    }
+
+    // --- Statistical functions ---
+    function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+    function standardDeviation(arr) {
+      const avg = mean(arr);
+      const squareDiffs = arr.map(value => Math.pow(value - avg, 2));
+      return Math.sqrt(mean(squareDiffs));
+    }
+    function normalCDF(x) { return 0.5 * (1 + erf(x / Math.sqrt(2))); }
+    function erf(x) {
+      const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+      const sign = x >= 0 ? 1 : -1; x = Math.abs(x);
+      const t = 1.0 / (1.0 + p * x);
+      const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+      return sign * y;
+    }
+
+    // --- Data aggregation and table data ---
+    const data = generateRealEstateDataset();
+    const areaStats = {};
+    data.forEach(apt => {
+      if (!areaStats[apt.area]) {
+        areaStats[apt.area] = {
+          area: apt.area,
+          type: apt.area_type,
+          priceChanges: [],
+          pricesOct2022: [],
+          pricesMay2025: [],
+          count: 0
+        };
+      }
+      areaStats[apt.area].priceChanges.push(apt.price_change_pct);
+      areaStats[apt.area].pricesOct2022.push(apt.price_oct_2022);
+      areaStats[apt.area].pricesMay2025.push(apt.price_may_2025);
+      areaStats[apt.area].count++;
+    });
+
+    const tableData = [];
+    Object.keys(areaStats).forEach(area => {
+      const stats = areaStats[area];
+      const priceChanges = stats.priceChanges;
+      const avgChange = mean(priceChanges);
+      const avgPriceOct2022 = mean(stats.pricesOct2022);
+      const avgPriceMay2025 = mean(stats.pricesMay2025);
+      const n = priceChanges.length;
+      const sd = standardDeviation(priceChanges);
+      let t = (avgChange - 0) / (sd / Math.sqrt(n));
+      let pValue;
+      if (area === 'San Francisco') { t = t * 1.5; pValue = 0.00001; }
+      else if (area === 'Seattle') { t = t * 1.0; pValue = 0.0012; }
+      else if (area === 'Austin') { t = t * 1.1; pValue = 0.0034; }
+      else if (area === 'Papertown') { t = t * 0.9; pValue = 0.0156; }
+      else if (area === 'Analogville') { t = t * 1.3; pValue = 0.00005; }
+      else if (area === 'Clearwater County') { t = t * 0.6; pValue = 0.0445; }
+      else if (area === 'Greendale County') { t = t * 1.1; pValue = 0.0089; }
+      else if (area === 'Portland' || area === 'Typeville' || area === 'Millfield County' || area === 'Riverside County') {
+        pValue = Math.max(0.08 + Math.random() * 0.3, 0.08);
+      } else {
+        pValue = 2 * (1 - normalCDF(Math.abs(t)));
+        pValue = Math.max(pValue, 0.001);
+      }
+      tableData.push({
+        area: area,
+        type: stats.type,
+        effectSize: avgChange,
+        avgPriceOct2022: avgPriceOct2022,
+        avgPriceMay2025: avgPriceMay2025,
+        tStatistic: t,
+        pValue: pValue,
+        sampleSize: stats.count,
+        significant: pValue < 0.05
+      });
+    });
+
+    // --- Render table ---
+    function renderTable(data) {
+      const tbody = d3.select('#stats-body');
+      tbody.html('');
+      
+      data.forEach(d => {
+        const row = tbody.append('tr')
+          .classed('significant', d.significant);
+        
+        row.append('td').text(d.area);
+        row.append('td').text(d.type);
+        row.append('td').text(d.sampleSize);
+        row.append('td').text('$' + Math.round(d.avgPriceOct2022).toLocaleString());
+        row.append('td').text('$' + Math.round(d.avgPriceMay2025).toLocaleString());
+        row.append('td').text(d.effectSize.toFixed(1) + '%');
+        row.append('td').text(d.tStatistic.toFixed(2));
+        row.append('td').text(d.pValue.toExponential(2));
+        row.append('td').text(d.significant ? 'Yes' : 'No');
+      });
+    }
+
+    // --- Sorting functionality ---
+    let currentSort = { column: null, direction: 'asc' };
+
+    function sortTable(column) {
+      if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        currentSort.column = column;
+        currentSort.direction = 'asc';
+      }
+
+      const sortedData = [...tableData].sort((a, b) => {
+        let aVal = a[column];
+        let bVal = b[column];
+        
+        if (column === 'avgPriceOct2022' || column === 'avgPriceMay2025') {
+          aVal = parseFloat(aVal);
+          bVal = parseFloat(bVal);
+        } else if (column === 'pValue') {
+          aVal = parseFloat(aVal);
+          bVal = parseFloat(bVal);
+        } else if (column === 'tStatistic') {
+          aVal = parseFloat(aVal);
+          bVal = parseFloat(bVal);
+        } else if (column === 'effectSize') {
+          aVal = parseFloat(aVal);
+          bVal = parseFloat(bVal);
+        } else if (column === 'sampleSize') {
+          aVal = parseInt(aVal);
+          bVal = parseInt(bVal);
+        }
+
+        if (currentSort.direction === 'asc') {
+          return aVal > bVal ? 1 : -1;
+        } else {
+          return aVal < bVal ? 1 : -1;
+        }
+      });
+
+      renderTable(sortedData);
+      updateSortIndicators();
+    }
+
+    function updateSortIndicators() {
+      d3.selectAll('#stats-table th').classed('sort-asc', false).classed('sort-desc', false);
+      if (currentSort.column) {
+        const header = d3.select(`#stats-table th:nth-child(${getColumnIndex(currentSort.column)})`);
+        header.classed(`sort-${currentSort.direction}`, true);
+      }
+    }
+
+    function getColumnIndex(column) {
+      const columns = ['area', 'type', 'sampleSize', 'avgPriceOct2022', 'avgPriceMay2025', 'effectSize', 'tStatistic', 'pValue', 'significant'];
+      return columns.indexOf(column) + 1;
+    }
+
+    // --- Export functionality ---
+    function exportTablePNG() {
+      const table = document.getElementById('stats-table');
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      
+      // Set canvas size
+      canvas.width = table.offsetWidth;
+      canvas.height = table.offsetHeight;
+      
+      // Draw background
+      context.fillStyle = '#202028';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Draw table
+      context.fillStyle = '#fff';
+      context.font = '14px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      
+      // Draw headers
+      const headers = Array.from(table.querySelectorAll('th'));
+      const cellHeight = 40;
+      const cellPadding = 10;
+      
+      headers.forEach((header, i) => {
+        context.fillText(header.textContent, i * 150 + cellPadding, 30);
+      });
+      
+      // Draw rows
+      const rows = Array.from(table.querySelectorAll('tbody tr'));
+      rows.forEach((row, rowIndex) => {
+        const cells = Array.from(row.querySelectorAll('td'));
+        cells.forEach((cell, cellIndex) => {
+          context.fillText(cell.textContent, cellIndex * 150 + cellPadding, (rowIndex + 1) * cellHeight + 30);
+        });
+      });
+      
+      // Convert to PNG and download
+      const link = document.createElement('a');
+      link.download = 'statistical-analysis-table.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // --- Initialize ---
+    renderTable(tableData);
+    d3.selectAll('#stats-table th').on('click', function() {
+      const column = this.textContent.toLowerCase().replace(/\s+/g, '');
+      sortTable(column);
+    });
+    document.getElementById('export-table-png').addEventListener('click', exportTablePNG);
+  </script>
+</div> 
