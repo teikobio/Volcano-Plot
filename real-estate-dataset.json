@@ -1,0 +1,13 @@
+[
+  {"area": "San Francisco", "type": "tech", "basePriceOct2022": 4200, "priceMultiplierMay2025": 2.2},
+  {"area": "Seattle", "type": "tech", "basePriceOct2022": 2800, "priceMultiplierMay2025": 1.45},
+  {"area": "Austin", "type": "tech", "basePriceOct2022": 2200, "priceMultiplierMay2025": 1.65},
+  {"area": "Portland", "type": "tech", "basePriceOct2022": 2600, "priceMultiplierMay2025": 1.12},
+  {"area": "Millfield County", "type": "rural", "basePriceOct2022": 950, "priceMultiplierMay2025": 1.005},
+  {"area": "Clearwater County", "type": "rural", "basePriceOct2022": 850, "priceMultiplierMay2025": 0.98},
+  {"area": "Greendale County", "type": "rural", "basePriceOct2022": 780, "priceMultiplierMay2025": 1.01},
+  {"area": "Riverside County", "type": "rural", "basePriceOct2022": 920, "priceMultiplierMay2025": 0.995},
+  {"area": "Papertown", "type": "manual", "basePriceOct2022": 1200, "priceMultiplierMay2025": 0.72},
+  {"area": "Analogville", "type": "manual", "basePriceOct2022": 1100, "priceMultiplierMay2025": 0.45},
+  {"area": "Typeville", "type": "manual", "basePriceOct2022": 1050, "priceMultiplierMay2025": 0.85}
+] 
