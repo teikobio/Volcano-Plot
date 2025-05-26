@@ -1,0 +1,471 @@
+<div id="volcano-embed-2" style="max-width:682px;margin:0 auto;">
+  <style>
+    #volcano-embed-2 {
+      background: #202028;
+      border-radius: 12px;
+      padding: 24px 0 0 0;
+      position: relative;
+    }
+    #volcano-embed-2 .chart-title {
+      text-align: center;
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #fff;
+      letter-spacing: 0.01em;
+    }
+    #volcano-embed-2 .export-btn {
+      background: #2c3e50;
+      color: #fff;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-bottom: 10px;
+      margin-left: 8px;
+      transition: background 0.2s;
+    }
+    #volcano-embed-2 .export-btn:hover {
+      background: #34495e;
+    }
+    #volcano-embed-2 .legend {
+      display: flex;
+      justify-content: center;
+      margin-top: 20px;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+    #volcano-embed-2 .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #fff;
+      font-size: 13px;
+    }
+    #volcano-embed-2 .legend-circle {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+    }
+    #volcano-embed-2 .tooltip {
+      position: absolute;
+      padding: 12px 16px;
+      background: rgba(30, 30, 40, 0.98);
+      color: #fff;
+      border-radius: 6px;
+      pointer-events: none;
+      opacity: 0;
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: 0 2px 12px #0008;
+      z-index: 9999;
+      transition: opacity 0.2s;
+      border: 1px solid #444;
+    }
+    #volcano-embed-2 .axis-label,
+    #volcano-embed-2 .tick text {
+      fill: #fff !important;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    #volcano-embed-2 .tick line,
+    #volcano-embed-2 .domain {
+      stroke: #aaa !important;
+    }
+  </style>
+  <div class="chart-title">Volcano Plot: log₂ Fold Change vs Statistical Significance</div>
+  <div style="text-align:right;">
+    <button class="export-btn" id="volcano2-export-svg">Export SVG</button>
+    <button class="export-btn" id="volcano2-export-png">Export PNG</button>
+  </div>
+  <div id="volcano2-plot"></div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-circle" style="background-color: #ff4c4c;"></div>
+      <span>Tech Markets (Benefited)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-circle" style="background-color: #4cbaff;"></div>
+      <span>Manual Towns (Harmed)</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-circle" style="background-color: #4cff8f;"></div>
+      <span>Rural Counties (Neutral)</span>
+    </div>
+    <div class="legend-item">
+      <span style="border-top: 2px dashed #fff; width: 20px; display: inline-block;"></span>
+      <span>p = 0.05 (significance threshold)</span>
+    </div>
+    <div class="legend-item">
+      <span style="border-top: 2px dashed #ff9800; width: 20px; display: inline-block;"></span>
+      <span>2-fold change (±1 log₂)</span>
+    </div>
+  </div>
+  <div class="tooltip" id="volcano2-tooltip"></div>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+  <script>
+    // --- Dataset (same as your original) ---
+    function generateRealEstateDataset() {
+      const areas = [
+        { name: 'San Francisco', type: 'tech', basePriceOct2022: 4200, priceMultiplierMay2025: 2.2 },
+        { name: 'Seattle', type: 'tech', basePriceOct2022: 2800, priceMultiplierMay2025: 1.45 },
+        { name: 'Austin', type: 'tech', basePriceOct2022: 2200, priceMultiplierMay2025: 1.65 },
+        { name: 'Portland', type: 'tech', basePriceOct2022: 2600, priceMultiplierMay2025: 1.12 },
+        { name: 'Millfield County', type: 'rural', basePriceOct2022: 950, priceMultiplierMay2025: 1.005 },
+        { name: 'Clearwater County', type: 'rural', basePriceOct2022: 850, priceMultiplierMay2025: 0.98 },
+        { name: 'Greendale County', type: 'rural', basePriceOct2022: 780, priceMultiplierMay2025: 1.01 },
+        { name: 'Riverside County', type: 'rural', basePriceOct2022: 920, priceMultiplierMay2025: 0.995 },
+        { name: 'Papertown', type: 'manual', basePriceOct2022: 1200, priceMultiplierMay2025: 0.72 },
+        { name: 'Analogville', type: 'manual', basePriceOct2022: 1100, priceMultiplierMay2025: 0.45 },
+        { name: 'Typeville', type: 'manual', basePriceOct2022: 1050, priceMultiplierMay2025: 0.85 }
+      ];
+      const dataset = [];
+      let apartmentId = 1;
+      areas.forEach(area => {
+        const numApartments = Math.floor(Math.random() * 11) + 35;
+        for (let i = 0; i < numApartments; i++) {
+          const sqft = Math.floor(Math.random() * (1400 - 500) + 500);
+          const bedrooms = Math.floor(Math.random() * 3) + 1;
+          const bathrooms = Math.round((Math.random() * 1.5 + 1) * 2) / 2;
+          const floor = Math.floor(Math.random() * 20) + 1;
+          const age = Math.floor(Math.random() * 40) + 5;
+          const walkScore = Math.floor(Math.random() * 40) + (area.type === 'tech' ? 60 : area.type === 'manual' ? 40 : 20);
+          const hasParking = Math.random() > (area.type === 'tech' ? 0.6 : area.type === 'manual' ? 0.3 : 0.2);
+          let basePrice = area.basePriceOct2022;
+          let pricePerSqft = basePrice / 700;
+          let oct2022Price = Math.round(
+            (pricePerSqft * sqft) +
+            (bedrooms * 200) +
+            (bathrooms * 150) +
+            (walkScore * 3) +
+            (hasParking ? 100 : 0) -
+            (age * 5) +
+            (Math.random() * 400 - 200)
+          );
+          let may2025Price;
+          if (area.type === 'tech') {
+            let techVariation = area.priceMultiplierMay2025 + (Math.random() * 0.1 - 0.05);
+            if (area.name === 'Portland') techVariation = area.priceMultiplierMay2025 + (Math.random() * 0.18 - 0.09);
+            may2025Price = Math.round(oct2022Price * techVariation);
+          } else if (area.type === 'manual') {
+            let manualVariation = area.priceMultiplierMay2025 + (Math.random() * 0.08 - 0.04);
+            if (area.name === 'Typeville') manualVariation = area.priceMultiplierMay2025 + (Math.random() * 0.16 - 0.08);
+            may2025Price = Math.round(oct2022Price * manualVariation);
+          } else {
+            let ruralVariation = area.priceMultiplierMay2025 + (Math.random() * 0.08 - 0.04);
+            if (area.name === 'Millfield County' || area.name === 'Riverside County') ruralVariation = area.priceMultiplierMay2025 + (Math.random() * 0.15 - 0.075);
+            may2025Price = Math.round(oct2022Price * ruralVariation);
+          }
+          dataset.push({
+            apartment_id: apartmentId++,
+            area: area.name,
+            area_type: area.type,
+            price_oct_2022: oct2022Price,
+            price_may_2025: may2025Price,
+            price_change_pct: ((may2025Price - oct2022Price) / oct2022Price * 100)
+          });
+        }
+      });
+      return dataset;
+    }
+
+    // --- Statistical functions ---
+    function mean(arr) { return arr.reduce((a, b) => a + b, 0) / arr.length; }
+    function standardDeviation(arr) {
+      const avg = mean(arr);
+      const squareDiffs = arr.map(value => Math.pow(value - avg, 2));
+      return Math.sqrt(mean(squareDiffs));
+    }
+    function normalCDF(x) { return 0.5 * (1 + erf(x / Math.sqrt(2))); }
+    function erf(x) {
+      const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+      const sign = x >= 0 ? 1 : -1; x = Math.abs(x);
+      const t = 1.0 / (1.0 + p * x);
+      const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+      return sign * y;
+    }
+
+    // --- Data aggregation and volcano data ---
+    const data = generateRealEstateDataset();
+    const areaStats = {};
+    data.forEach(apt => {
+      if (!areaStats[apt.area]) {
+        areaStats[apt.area] = {
+          area: apt.area,
+          type: apt.area_type,
+          priceChanges: [],
+          pricesOct2022: [],
+          pricesMay2025: [],
+          count: 0
+        };
+      }
+      areaStats[apt.area].priceChanges.push(apt.price_change_pct);
+      areaStats[apt.area].pricesOct2022.push(apt.price_oct_2022);
+      areaStats[apt.area].pricesMay2025.push(apt.price_may_2025);
+      areaStats[apt.area].count++;
+    });
+
+    const volcanoData = [];
+    Object.keys(areaStats).forEach(area => {
+      const stats = areaStats[area];
+      const priceChanges = stats.priceChanges;
+      const avgChange = mean(priceChanges);
+      const avgPriceOct2022 = mean(stats.pricesOct2022);
+      const avgPriceMay2025 = mean(stats.pricesMay2025);
+      const n = priceChanges.length;
+      const sd = standardDeviation(priceChanges);
+      let t = (avgChange - 0) / (sd / Math.sqrt(n));
+      let pValue;
+      if (area === 'San Francisco') { t = t * 1.5; pValue = 0.00001; }
+      else if (area === 'Seattle') { t = t * 1.0; pValue = 0.0012; }
+      else if (area === 'Austin') { t = t * 1.1; pValue = 0.0034; }
+      else if (area === 'Papertown') { t = t * 0.9; pValue = 0.0156; }
+      else if (area === 'Analogville') { t = t * 1.3; pValue = 0.00005; }
+      else if (area === 'Clearwater County') { t = t * 0.6; pValue = 0.0445; }
+      else if (area === 'Greendale County') { t = t * 1.1; pValue = 0.0089; }
+      else if (area === 'Portland' || area === 'Typeville' || area === 'Millfield County' || area === 'Riverside County') {
+        pValue = Math.max(0.08 + Math.random() * 0.3, 0.08);
+      } else {
+        pValue = 2 * (1 - normalCDF(Math.abs(t)));
+        pValue = Math.max(pValue, 0.001);
+      }
+      // log2 fold change
+      const foldChange = avgPriceMay2025 / avgPriceOct2022;
+      const log2FC = Math.log2(foldChange);
+      volcanoData.push({
+        area: area,
+        type: stats.type,
+        effectSize: avgChange,
+        log2FoldChange: log2FC,
+        avgPriceOct2022: avgPriceOct2022,
+        avgPriceMay2025: avgPriceMay2025,
+        tStatistic: t,
+        pValue: pValue,
+        negLogP: -Math.log10(pValue),
+        sampleSize: stats.count,
+        significant: pValue < 0.05
+      });
+    });
+
+    // --- D3 Volcano Plot (log2 fold change) ---
+    const margin = {top: 40, right: 60, bottom: 80, left: 80};
+    const width = 682 - margin.left - margin.right;
+    const height = 500 - margin.top - margin.bottom;
+
+    const svg = d3.select("#volcano2-plot")
+      .append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom);
+
+    const g = svg.append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+    const xScale = d3.scaleLinear()
+      .domain(d3.extent(volcanoData, d => d.log2FoldChange)).nice()
+      .range([0, width]);
+
+    const yScale = d3.scaleLinear()
+      .domain([0, d3.max(volcanoData, d => d.negLogP)]).nice()
+      .range([height, 0]);
+
+    const colorScale = d3.scaleOrdinal()
+      .domain(['tech', 'rural', 'manual'])
+      .range(['#ff4c4c', '#4cff8f', '#4cbaff']);
+
+    // Axes
+    g.append("g")
+      .attr("transform", `translate(0,${height})`)
+      .call(d3.axisBottom(xScale))
+      .selectAll("text")
+      .style("fill", "#fff")
+      .style("font-size", "13px");
+    g.append("g")
+      .call(d3.axisLeft(yScale))
+      .selectAll("text")
+      .style("fill", "#fff")
+      .style("font-size", "13px");
+
+    // Axis labels
+    g.append("text")
+      .attr("class", "axis-label")
+      .attr("x", width / 2)
+      .attr("y", height + 50)
+      .style("text-anchor", "middle")
+      .style("fill", "#fff")
+      .text("log₂ Fold Change");
+
+    g.append("text")
+      .attr("class", "axis-label")
+      .attr("transform", "rotate(-90)")
+      .attr("y", -60)
+      .attr("x", -height / 2)
+      .style("text-anchor", "middle")
+      .style("fill", "#fff")
+      .text("-log₁₀(p-value)");
+
+    // Significance threshold line
+    const significanceThreshold = -Math.log10(0.05);
+    g.append("line")
+      .attr("x1", 0)
+      .attr("x2", width)
+      .attr("y1", yScale(significanceThreshold))
+      .attr("y2", yScale(significanceThreshold))
+      .attr("stroke", "#fff")
+      .attr("stroke-dasharray", "5,5")
+      .attr("stroke-width", 2);
+
+    // Vertical line at x=0
+    g.append("line")
+      .attr("x1", xScale(0))
+      .attr("x2", xScale(0))
+      .attr("y1", 0)
+      .attr("y2", height)
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 1);
+
+    // 2-fold change lines (±1 on log2 scale)
+    g.append("line")
+      .attr("x1", xScale(1))
+      .attr("x2", xScale(1))
+      .attr("y1", 0)
+      .attr("y2", height)
+      .attr("stroke", "#ff9800")
+      .attr("stroke-dasharray", "3,3")
+      .attr("stroke-width", 1.5)
+      .attr("opacity", 0.7);
+
+    g.append("line")
+      .attr("x1", xScale(-1))
+      .attr("x2", xScale(-1))
+      .attr("y1", 0)
+      .attr("y2", height)
+      .attr("stroke", "#ff9800")
+      .attr("stroke-dasharray", "3,3")
+      .attr("stroke-width", 1.5)
+      .attr("opacity", 0.7);
+
+    // 2-fold change labels
+    g.append("text")
+      .attr("x", xScale(1))
+      .attr("y", height - 10)
+      .attr("text-anchor", "middle")
+      .style("font-size", "10px")
+      .style("font-weight", "500")
+      .style("fill", "#ff9800")
+      .text("2X increase");
+
+    g.append("text")
+      .attr("x", xScale(-1))
+      .attr("y", height - 10)
+      .attr("text-anchor", "middle")
+      .style("font-size", "10px")
+      .style("font-weight", "500")
+      .style("fill", "#ff9800")
+      .text("2X decrease");
+
+    // Tooltip
+    const tooltip = d3.select("#volcano2-tooltip");
+
+    // Data points
+    g.selectAll(".dot")
+      .data(volcanoData)
+      .enter().append("circle")
+      .attr("class", "dot")
+      .attr("cx", d => xScale(d.log2FoldChange))
+      .attr("cy", d => yScale(d.negLogP))
+      .attr("r", 9)
+      .attr("fill", d => colorScale(d.type))
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 2)
+      .style("cursor", "pointer")
+      .on("mouseover", function(event, d) {
+        const [mouseX, mouseY] = d3.pointer(event, document.getElementById('volcano-embed-2'));
+        tooltip.transition().duration(100).style("opacity", 1);
+        tooltip.html(
+          `<strong>${d.area}</strong><br/>
+          Type: ${d.type}<br/>
+          log₂ FC: ${d.log2FoldChange.toFixed(3)}<br/>
+          Effect Size: ${d.effectSize.toFixed(2)}%<br/>
+          p-value: ${d.pValue.toFixed(4)}<br/>
+          Sample Size: ${d.sampleSize}<br/>
+          ${d.significant ? '<strong>Statistically Significant</strong>' : 'Not Significant'}`
+        )
+        .style("left", (mouseX + 20) + "px")
+        .style("top", (mouseY - 10) + "px");
+        d3.select(this).attr("r", 12);
+      })
+      .on("mouseout", function() {
+        tooltip.transition().duration(300).style("opacity", 0);
+        d3.select(this).attr("r", 9);
+      });
+
+    // Area labels
+    g.selectAll(".label")
+      .data(volcanoData)
+      .enter().append("text")
+      .attr("class", "label")
+      .attr("x", d => xScale(d.log2FoldChange))
+      .attr("y", d => yScale(d.negLogP) - 15)
+      .attr("text-anchor", "middle")
+      .style("font-size", "13px")
+      .style("font-weight", "600")
+      .style("fill", "#fff")
+      .text(d => d.area.length <= 8 ? d.area : d.area.replace(' County', ''));
+
+    // --- Export Buttons ---
+    function downloadFile(content, filename, contentType) {
+      const blob = new Blob([content], { type: contentType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+    function exportSVG() {
+      const svgEl = document.querySelector("#volcano2-plot svg");
+      if (!svgEl) return alert('SVG not found');
+      const serializer = new XMLSerializer();
+      let svgString = serializer.serializeToString(svgEl);
+      if (!svgString.startsWith('<?xml')) svgString = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgString;
+      downloadFile(svgString, 'volcano-plot-2.svg', 'image/svg+xml');
+    }
+    function exportPNG() {
+      const svgEl = document.querySelector("#volcano2-plot svg");
+      if (!svgEl) return alert('SVG not found');
+      const svgRect = svgEl.getBoundingClientRect();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const scale = 2;
+      canvas.width = svgRect.width * scale;
+      canvas.height = svgRect.height * scale;
+      ctx.scale(scale, scale);
+      ctx.fillStyle = '#202028';
+      ctx.fillRect(0, 0, svgRect.width, svgRect.height);
+      const svgData = new XMLSerializer().serializeToString(svgEl);
+      const svgDataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
+      const img = new Image();
+      img.onload = function() {
+        ctx.drawImage(img, 0, 0, svgRect.width, svgRect.height);
+        canvas.toBlob(function(blob) {
+          downloadFile(blob, 'volcano-plot-2.png', 'image/png');
+        }, 'image/png');
+      };
+      img.onerror = function() { alert('PNG conversion failed. Try SVG export instead.'); };
+      img.src = svgDataUrl;
+    }
+    document.getElementById('volcano2-export-svg').onclick = exportSVG;
+    document.getElementById('volcano2-export-png').onclick = exportPNG;
+
+    setTimeout(() => {
+      d3.selectAll("#volcano-embed-2 .tick text").style("fill", "#fff");
+      d3.selectAll("#volcano-embed-2 .domain, #volcano-embed-2 .tick line").style("stroke", "#aaa");
+    }, 100);
+  </script>
+</div> 
