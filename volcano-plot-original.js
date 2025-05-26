@@ -144,8 +144,12 @@ export function renderVolcanoPlot(container, dataset) {
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
   // Use effectSize (percentage change) instead of log2FoldChange
+  const maxAbsEffect = Math.max(
+    Math.abs(d3.min(volcanoData, d => d.effectSize)),
+    Math.abs(d3.max(volcanoData, d => d.effectSize))
+  );
   const xScale = d3.scaleLinear()
-    .domain(d3.extent(volcanoData, d => d.effectSize)).nice()
+    .domain([-maxAbsEffect, maxAbsEffect])
     .range([0, width]);
 
   const yScale = d3.scaleLinear()
