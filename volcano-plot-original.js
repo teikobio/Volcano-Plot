@@ -32,7 +32,7 @@ export function renderVolcanoPlot(container, dataset) {
         </div>
         <div class="legend-item">
           <span style="border-top: 2px dashed #ff9800; width: 20px; display: inline-block;"></span>
-          <span>±50% change threshold</span>
+          <span>±50% price change threshold</span>
         </div>
       </div>
       <div class="tooltip" id="volcano-original-tooltip"></div>
