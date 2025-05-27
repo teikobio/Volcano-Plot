@@ -51,23 +51,27 @@ export function renderStatsTable(container, dataset) {
   const styles = `
     <style>
       .stats-table-container {
+        overflow-x: auto; /* Enable horizontal scroll */
+        max-width: 682px; /* Ensure it doesn't overflow the article width */
+        margin: 0 auto; /* Center the container */
         background: #202028;
         border-radius: 12px;
-        padding: 24px;
+        /* padding: 24px; Adjusted below */
+        padding: 16px; /* Reduced padding for smaller screens */
         color: #fff;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       }
       .table-controls {
-        margin-bottom: 16px;
+        margin-bottom: 12px; /* Reduced margin */
         text-align: right;
       }
       .export-btn {
         background: #2c3e50;
         color: #fff;
         border: none;
-        padding: 8px 12px;
+        padding: 6px 10px; /* Reduced padding */
         border-radius: 6px;
-        font-size: 12px;
+        font-size: 11px; /* Reduced font size */
         font-weight: 600;
         cursor: pointer;
         margin-left: 8px;
@@ -77,24 +81,27 @@ export function renderStatsTable(container, dataset) {
         background: #34495e;
       }
       .stats-table {
+        min-width: 800px; /* Set a min-width so columns don't collapse too much */
         width: 100%;
         border-collapse: collapse;
-        font-size: 14px;
+        font-size: 13px; /* Reduced base font size */
       }
       .stats-table th {
         background: #2c3e50;
-        padding: 12px;
+        padding: 10px 8px; /* Reduced padding */
         text-align: left;
         font-weight: 600;
         cursor: pointer;
         user-select: none;
+        white-space: nowrap; /* Prevent header text from wrapping */
       }
       .stats-table th:hover {
         background: #34495e;
       }
       .stats-table td {
-        padding: 12px;
+        padding: 10px 8px; /* Reduced padding */
         border-bottom: 1px solid #444;
+        white-space: nowrap; /* Prevent cell text from wrapping */
       }
       .stats-table tr:hover {
         background: #2c3e50;
@@ -105,11 +112,57 @@ export function renderStatsTable(container, dataset) {
       .stats-table tr.significant:hover {
         background: rgba(76, 255, 143, 0.2);
       }
+      .table-scroll-hint {
+        font-size: 11px; /* Smaller font for the hint */
+        color: #aaa;
+        text-align: right;
+        margin: 0 8px 4px 0;
+        display: block; /* Make it a block to take up width */
+      }
+
+      /* Media queries for further responsiveness */
+      @media (max-width: 768px) { /* Adjust breakpoint as needed */
+        .stats-table {
+          font-size: 12px;
+          min-width: 700px; /* Adjust min-width for smaller screens */
+        }
+        .stats-table th,
+        .stats-table td {
+          padding: 8px 6px;
+        }
+        .export-btn {
+          font-size: 10px;
+          padding: 5px 8px;
+        }
+        .stats-table-container {
+            padding: 12px;
+        }
+      }
+      @media (max-width: 600px) {
+        .stats-table {
+          font-size: 11px;
+          min-width: 600px;
+        }
+         .stats-table th,
+        .stats-table td {
+          padding: 6px 4px;
+        }
+        /* Optionally hide less critical columns on very small screens */
+        /* For example, hide log2FC and Sample Size */
+        .stats-table th:nth-child(4),
+        .stats-table td:nth-child(4),
+        .stats-table th:nth-child(9),
+        .stats-table td:nth-child(9) {
+          /* display: none; */ /* Uncomment to hide */
+        }
+      }
     </style>
   `;
 
-  // Add table and styles to container
-  container.innerHTML = styles + tableHTML;
+  // Add table and styles to container, including the scroll hint
+  container.innerHTML = styles +
+    (container.offsetWidth < 800 ? '<span class="table-scroll-hint">Scroll right to see more columns &rarr;</span>' : '') +
+    tableHTML;
 
   // Add sorting functionality
   const table = container.querySelector('.stats-table');

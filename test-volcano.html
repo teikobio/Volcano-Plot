@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Volcano Plot Test</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+</head>
+<body>
+  <div id="volcano-plot-original"></div>
+  <div id="volcano-plot-transformed"></div>
+  <div id="stats-table-container"></div>
+
+  <script type="module">
+    import { generateRealEstateDataset } from './data-generator.js';
+    import { renderVolcanoPlot as renderOriginal } from './volcano-plot-original.js';
+    import { renderVolcanoPlot as renderTransformed } from './volcano-plot.js';
+    import { renderStatsTable } from './stats-table.js';
+
+    const dataset = generateRealEstateDataset();
+    renderOriginal(document.getElementById('volcano-plot-original'), dataset);
+    renderTransformed(document.getElementById('volcano-plot-transformed'), dataset);
+    renderStatsTable(document.getElementById('stats-table-container'), dataset);
+  </script>
+</body>
+</html>
